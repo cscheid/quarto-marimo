@@ -140,3 +140,29 @@ test(
     },
   ),
 );
+
+test(
+  "the compiler process receives executeEnv, and without it sees none",
+  { skip: windows },
+  withScript(
+    '#!/bin/sh\nprintf \'{"kind":"static","outputs":[],"seen":"%s"}\' "${QUARTO_DOCUMENT_FILE:-unset}"\n',
+    async (command) => {
+      const previous = process.env.QUARTO_PYTHON;
+      const previousVar = process.env.QUARTO_DOCUMENT_FILE;
+      process.env.QUARTO_PYTHON = command;
+      delete process.env.QUARTO_DOCUMENT_FILE;
+      try {
+        const seen = async (env?: Record<string, string>) =>
+          ((await runMarimoCompiler(quarto, { ...compilerOptions, env })) as unknown as {
+            seen: string;
+          }).seen;
+        assertEquals(await seen({ QUARTO_DOCUMENT_FILE: "doc.qmd" }), "doc.qmd");
+        assertEquals(await seen(), "unset");
+      } finally {
+        if (previous === undefined) delete process.env.QUARTO_PYTHON;
+        else process.env.QUARTO_PYTHON = previous;
+        if (previousVar !== undefined) process.env.QUARTO_DOCUMENT_FILE = previousVar;
+      }
+    },
+  ),
+);

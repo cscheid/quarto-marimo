@@ -45,6 +45,8 @@ export async function runMarimoCompiler(
     externalEnv: boolean;
     pyproject: string;
     bareSql?: boolean;
+    // Quarto 2's `executeEnv`; only the process that runs cells gets it.
+    env?: Record<string, string>;
   },
 ): Promise<MarimoExecution> {
   const extensionDir = dirname(fileURLToPath(options.moduleUrl));
@@ -77,7 +79,14 @@ export async function runMarimoCompiler(
 
   let output: string;
   try {
-    output = await executeProcess(quarto, command, args, options.source);
+    output = await executeProcess(
+      quarto,
+      command,
+      args,
+      options.source,
+      compilerTimeoutMs(),
+      options.env,
+    );
   } finally {
     if (temporaryDirectory) {
       removeTemporaryDirectory(temporaryDirectory);

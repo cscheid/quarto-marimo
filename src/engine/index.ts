@@ -40,6 +40,8 @@ import { buildMarimoRecord, type WireUnit } from "./records.ts";
 interface Quarto2ExecuteOptions {
   ownedLanguages?: string[];
   units?: WireUnit[];
+  // Per-document and project environment variables; merge into the process that runs cells.
+  executeEnv?: Record<string, string>;
 }
 
 let quarto: QuartoAPI;
@@ -167,7 +169,7 @@ const marimoEngineDiscovery: ExecutionEngineDiscovery = {
 
     execute: async (options: ExecuteOptions): Promise<ExecuteResult> => {
       const interactive = quarto.format.isHtmlCompatible(options.format);
-      const { ownedLanguages, units } = options as ExecuteOptions & Quarto2ExecuteOptions;
+      const { ownedLanguages, units, executeEnv } = options as ExecuteOptions & Quarto2ExecuteOptions;
       // Bare sql is marimo's when Quarto 2 assigned it (`ownedLanguages`), else when
       // the leave-alone set `handledLanguages` does not hold it. Quarto 1 sends neither.
       const bareSql = bareSqlOwned(options.handledLanguages, ownedLanguages);
@@ -183,6 +185,7 @@ const marimoEngineDiscovery: ExecutionEngineDiscovery = {
             externalEnv: options.target.metadata["external-env"] === true,
             pyproject: String(options.target.metadata.pyproject ?? ""),
             bareSql,
+            env: executeEnv,
           }),
       );
       const chunks = await quarto.markdownRegex.breakQuartoMd(
